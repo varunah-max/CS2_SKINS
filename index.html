@@ -15,6 +15,39 @@
       <div class="profile">
         <span class="username">User</span>
         <div class="hash-balance">Hashes: <span id="hash-count">0</span> H/s</div>
+        <script>
+  // Telegram Web App объект
+  const tg = window.Telegram.WebApp;
+
+  tg.ready(); // сигнализируем Telegram, что WebApp готов
+
+  // Получаем user_id
+  const userId = tg.initDataUnsafe.user?.id;
+
+  if (userId) {
+    fetch("https://your-api-server.com/get_balance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.balance !== undefined) {
+        document.getElementById("hash-count").textContent = data.balance.toFixed(2);
+      } else {
+        document.getElementById("hash-count").textContent = "0.00";
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching balance:", err);
+      document.getElementById("hash-count").textContent = "0.00";
+    });
+  } else {
+    document.getElementById("hash-count").textContent = "0.00";
+  }
+</script>
         <div class="lightning-balance">Lightning: <span id="lightning-count">0</span> ⚡</div>
         <div class="exchange-actions">
           <button class="action-exchange" data-type="lightning-to-hash">1 ⚡ → 100 H/s</button>
