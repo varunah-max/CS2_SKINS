@@ -1,128 +1,210 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Инициализация Telegram Web App
-  if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.expand();
-  }
+import asyncio
+import sqlite3
+import logging
+import threading
+from flask import Flask, request, jsonify
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from aiogram.filters import Command
+from aiogram.enums import ChatType
 
-  // Переключение вкладок
-  const tabs = document.querySelectorAll('.tab');
-  const tabContents = document.querySelectorAll('.tab-content');
+# Конфигурация
+TELEGRAM_TOKEN = '6431272924:AAFtOJw3vwP6O6lqViQu0vdXAT5G19YKof4'
+WEBAPP_URL = 'https://varunah-max.github.io/CS2_SKINS/'
+CHANNEL_NICKNAME = 'Searching_Anomalous_Volumes_bot'
+HTTP_PORT = 3000
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetTab = tab.getAttribute('data-tab');
+# Flask-приложение
+app = Flask(__name__)
 
-      tabs.forEach(t => t.classList.remove('active'));
-      tabContents.forEach(content => content.classList.remove('active'));
+# Telegram-бот
+bot = Bot(token=TELEGRAM_TOKEN)
+dp = Dispatcher()
 
-      tab.classList.add('active');
-      document.getElementById(targetTab).classList.add('active');
-    });
-  });
+# Главное меню
+main_menu = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text="Profile"),
+     KeyboardButton(text="Open Web App", web_app=WebAppInfo(url=WEBAPP_URL))]
+], resize_keyboard=True)
 
-  // Переключение категорий в магазине
-  const storeCategories = document.querySelectorAll('.category');
-  const storeItems = document.querySelectorAll('.store-items');
+# База данных
+class Database:
+    def __init__(self, db_file):
+        self.connection = sqlite3.connect(db_file, check_same_thread=False)
+        self.cursor = self.connection.cursor()
+        self.init_db()
 
-  storeCategories.forEach(category => {
-    category.addEventListener('click', () => {
-      const targetCategory = category.getAttribute('data-category');
+    def init_db(self):
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                "chat id" INTEGER,
+                balance REAL DEFAULT 0.0,
+                referrer_id INTEGER
+            )
+        ''')
+        self.connection.commit()
 
-      storeCategories.forEach(cat => cat.classList.remove('active'));
-      storeItems.forEach(item => item.classList.remove('active'));
+    def user_exists(self, user_id):
+        self.cursor.execute("SELECT 1 FROM users WHERE user_id = ?", (user_id,))
+        return self.cursor.fetchone() is not None
 
-      category.classList.add('active');
-      document.getElementById(targetCategory).classList.add('active');
-    });
-  });
+    def add_user(self, user_id, username, chat_id, referrer_id=None):
+        if not self.user_exists(user_id):
+            if referrer_id:
+                self.cursor.execute('INSERT INTO users (user_id, username, "chat id", balance, referrer_id) VALUES (?,?,?,?,?)',
+                    (user_id, username, chat_id, 0.0, referrer_id))
+            else:
+                self.cursor.execute('INSERT INTO users (user_id, username, "chat id", balance) VALUES (?,?,?,?)',
+                    (user_id, username, chat_id, 0.0))
+            self.connection.commit()
 
-  // Переключение категорий в рынке
-  const marketCategories = document.querySelectorAll('.market-category');
-  const marketItems = document.querySelectorAll('.market-items');
+    def count_referrals(self, user_id):
+        self.cursor.execute("SELECT COUNT(*) FROM users WHERE referrer_id = ?", (user_id,))
+        return self.cursor.fetchone()[0]
 
-  marketCategories.forEach(category => {
-    category.addEventListener('click', () => {
-      const targetCategory = category.getAttribute('data-market-category');
+    def get_balance(self, user_id):
+        self.cursor.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        return result[0] if result else 0.0
 
-      marketCategories.forEach(cat => cat.classList.remove('active'));
-      marketItems.forEach(item => item.classList.remove('active'));
+    def get_profile(self, user_id):
+        self.cursor.execute('SELECT username, balance, referrer_id FROM users WHERE user_id = ?', (user_id,))
+        result = self.cursor.fetchone()
+        if result:
+            username, balance, referrer_id = result
+            return {
+                'user_id': user_id,
+                'username': username,
+                'balance': balance,
+                'referrals': self.count_referrals(user_id),
+                'referrer_id': referrer_id or 'None',
+                'channel_nickname': CHANNEL_NICKNAME
+            }
+        return None
 
-      category.classList.add('active');
-      document.getElementById(targetCategory).classList.add('active');
-    });
-  });
+    def increment_all_balances(self, amount=0.01):
+        self.cursor.execute("UPDATE users SET balance = balance + ?", (amount,))
+        self.connection.commit()
 
-  // Обработка кликов по кнопкам
-  document.querySelectorAll('.buy-item').forEach(button => {
-    button.addEventListener('click', () => {
-      const item = button.getAttribute('data-item');
-      console.log(`Buy item: ${item}`);
-      // Логика покупки
-    });
-  });
+    def get_all_user_ids(self):
+        self.cursor.execute("SELECT user_id FROM users")
+        return [row[0] for row in self.cursor.fetchall()]
 
-  document.querySelectorAll('.sell-item').forEach(button => {
-    button.addEventListener('click', () => {
-      const chip = button.getAttribute('data-chip');
-      console.log(`Sell chip: ${chip}`);
-      // Логика продажи
-    });
-  });
+    def close(self):
+        self.connection.close()
 
-  document.querySelectorAll('.action-upgrade').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Upgrade Farm clicked');
-    });
-  });
+# Новый маршрут для получения баланса по chat_id
+@app.route('/get_balance_by_chat_id', methods=['POST'])
+def get_balance_by_chat_id():
+    data = request.json
+    chat_id = data.get('chat_id')
+    if chat_id:
+        db = Database("users.db")
+        db.cursor.execute('SELECT balance FROM users WHERE "chat id" = ?', (chat_id,))
+        result = db.cursor.fetchone()
+        db.close()
+        if result:
+            return jsonify({"balance": result[0]})
+        return jsonify({"error": "user not found"}), 404
+    return jsonify({"error": "chat_id required"}), 400
 
-  document.querySelectorAll('.action-boost').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Boost Mining clicked');
-    });
-  });
+# Фоновая задача для начисления
+async def accrue_loop():
+    db = Database("users.db")
+    try:
+        while True:
+            db.increment_all_balances(0.01)
+            await asyncio.sleep(1)
+    finally:
+        db.close()
 
-  document.querySelectorAll('.action-ad').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Watch Ad clicked');
-    });
-  });
+def start_background_loop():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(accrue_loop())
+    loop.run_forever()
 
-  document.querySelectorAll('.action-leaderboard').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('View Leaderboard clicked');
-    });
-  });
+# Flask маршруты API
+@app.route('/get_balance', methods=['POST'])
+def get_balance():
+    data = request.json
+    user_id = data.get('user_id')
+    if user_id:
+        db = Database("users.db")
+        balance = db.get_balance(user_id)
+        db.close()
+        return jsonify({"balance": balance})
+    return jsonify({"error": "user_id required"}), 400
 
-  document.querySelectorAll('.action-sound').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Toggle Sound clicked');
-    });
-  });
+@app.route('/get_profile', methods=['POST'])
+def get_profile():
+    data = request.json
+    user_id = data.get('user_id')
+    if user_id:
+        db = Database("users.db")
+        profile = db.get_profile(user_id)
+        db.close()
+        if profile:
+            return jsonify(profile)
+        return jsonify({"error": "user not found"}), 404
+    return jsonify({"error": "user_id required"}), 400
 
-  document.querySelectorAll('.action-notifications').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Toggle Notifications clicked');
-    });
-  });
+# Команды Telegram
+@dp.message(Command("start"))
+async def handle_start(message: Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
 
-  document.querySelectorAll('.action-wallet').forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Connect Wallet clicked');
-    });
-  });
+    user_id = message.from_user.id
+    username = message.from_user.username or "Unknown"
+    chat_id = message.chat.id
 
-  document.querySelectorAll('.action-task').forEach(button => {
-    button.addEventListener('click', () => {
-      const task = button.getAttribute('data-task');
-      console.log(`Claim Task Reward: ${task}`);
-    });
-  });
+    db = Database("users.db")
+    if not db.user_exists(user_id):
+        parts = message.text.split()
+        referrer_id = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+        if referrer_id and referrer_id != user_id:
+            db.add_user(user_id, username, chat_id, referrer_id)
+            try:
+                await bot.send_message(referrer_id, "You have +1 referral!")
+            except:
+                pass
+        else:
+            db.add_user(user_id, username, chat_id)
+    db.close()
+    await message.answer("Welcome! Your balance increases automatically.\nUse the WebApp or type /balance", reply_markup=main_menu)
 
-  document.querySelectorAll('.action-view-profile').forEach(button => {
-    button.addEventListener('click', () => {
-      const player = button.getAttribute('data-player');
-      console.log(`View profile: ${player}`);
-    });
-  });
-});
+@dp.message(Command("balance"))
+async def handle_balance(message: Message):
+    db = Database("users.db")
+    balance = db.get_balance(message.from_user.id)
+    db.close()
+    await message.answer(f"Your balance: {balance:.2f} H")
+
+@dp.message(Command("profile"))
+async def handle_profile(message: Message):
+    user_id = message.from_user.id
+    db = Database("users.db")
+    profile = db.get_profile(user_id)
+    db.close()
+    if profile:
+        await message.answer(
+            f"ID: {profile['user_id']}\n"
+            f"Referrals: {profile['referrals']}\n"
+            f"Balance: {profile['balance']:.2f} H\n"
+            f"Referral link: https://t.me/{CHANNEL_NICKNAME}?start={user_id}"
+        )
+
+# Запуск всего приложения
+if __name__ == '__main__':
+    # Запуск фоновой задачи начисления
+    threading.Thread(target=start_background_loop, daemon=True).start()
+
+    # Запуск Telegram-бота в отдельном потоке
+    threading.Thread(target=lambda: asyncio.run(dp.start_polling(bot)), daemon=True).start()
+
+    # Запуск Flask API
+    print(f"Web API started at http://localhost:{HTTP_PORT}")
+    app.run(host="0.0.0.0", port=HTTP_PORT)
