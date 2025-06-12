@@ -1,368 +1,267 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crypto Mining Simulator</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="main.css">
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
+  <h1>Crypto Mining Simulator</h1>
   <div class="container">
-    <header>
-      <h1 class="VFARM">Crypto Mining Simulator</h1>
-      <div class="profile">
-        <span class="username">User</span>
-        <div class="hash-balance">Hashes: <span id="hash-count">0</span> H/s</div>
-        <script>
-  // Telegram Web App объект
-  const tg = window.Telegram.WebApp;
-
-  tg.ready(); // сигнализируем Telegram, что WebApp готов
-
-  // Получаем user_id
-  const userId = tg.initDataUnsafe.user?.id;
-
-  if (userId) {
-    fetch("https://your-api-server.com/get_balance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ user_id: userId })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.balance !== undefined) {
-        document.getElementById("hash-count").textContent = data.balance.toFixed(2);
-      } else {
-        document.getElementById("hash-count").textContent = "0.00";
-      }
-    })
-    .catch(err => {
-      console.error("Error fetching balance:", err);
-      document.getElementById("hash-count").textContent = "0.00";
-    });
-  } else {
-    document.getElementById("hash-count").textContent = "0.00";
-  }
-</script>
-        <div class="lightning-balance">Lightning: <span id="lightning-count">0</span> ⚡</div>
-        <div class="exchange-actions">
-          <button class="action-exchange" data-type="lightning-to-hash">1 ⚡ → 100 H/s</button>
-          <button class="action-exchange" data-type="hash-to-lightning">100 H/s → 1 ⚡</button>
-        </div>
-      </div>
-    </header>
-    <main>
-      <!-- Навигация по вкладкам -->
-      <nav class="tabs">
-        <a href="#" class="tab active" data-tab="farm">Farm</a>
-        <a href="#" class="tab" data-tab="store">Store</a>
-        <a href="#" class="tab" data-tab="stats">Stats</a>
-        <a href="#" class="tab" data-tab="settings">Settings</a>
-        <a href="#" class="tab" data-tab="tasks">Tasks</a>
-        <a href="#" class="tab" data-tab="players">Players</a>
-        <a href="#" class="tab" data-tab="deposit-withdraw">Deposit/Withdraw</a>
-      </nav>
-      <!-- Вкладка: Farm -->
-      <div class="tab-content farm-tab active" id="farm">
-        <div class="farm-container">
-          <div class="farm">
-            <div class="cooler"></div>
-            <p>Small Mining Rig (<span id="hash-rate">0.001</span> H/s)</p>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="action-upgrade">Upgrade Farm (10 H/s)</button>
-          <button class="action-boost">Boost Mining (25 H/s)</button>
-        </div>
-        <div class="ad-section">
-          <p>Watch ad to earn 5 H/s!</p>
-          <button class="action-ad">Watch Ad</button>
-        </div>
-      </div>
-      <!-- Вкладка: Store -->
-      <div class="tab-content store-tab" id="store">
-        <div class="store-container">
-          <h2>Store</h2>
-          <div class="store-categories">
-            <button class="category active" data-category="equipment">Equipment</button>
-            <button class="category" data-category="boosters">Boosters</button>
-            <button class="category" data-category="cosmetics">Cosmetics</button>
-          </div>
-          <div class="store-items active" id="equipment">
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/rig1.png');"></div>
-              <div class="item-details">
-                <p>Advanced Mining Rig</p>
-                <span>Increases rate by 100 H/s</span>
-                <button class="buy-item" data-item="advanced-rig">Buy for 50 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/rig2.png');"></div>
-              <div class="item-details">
-                <p>Quantum Miner</p>
-                <span>Increases rate by 500 H/s</span>
-                <button class="buy-item" data-item="quantum-miner">Buy for 200 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/rig3.png');"></div>
-              <div class="item-details">
-                <p>Hyper Processor</p>
-                <span>Increases rate by 1000 H/s</span>
-                <button class="buy-item" data-item="hyper-processor">Buy for 500 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/rig4.png');"></div>
-              <div class="item-details">
-                <p>Neural Network Node</p>
-                <span>Increases rate by 2500 H/s</span>
-                <button class="buy-item" data-item="neural-node">Buy for 1200 H/s</button>
-              </div>
-            </div>
-          </div>
-          <div class="store-items" id="boosters">
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/booster.png');"></div>
-              <div class="item-details">
-                <p>Super Cooler</p>
-                <span>Boosts mining x2 for 1 hour</span>
-                <button class="buy-item" data-item="super-cooler">Buy for 75 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/energy.png');"></div>
-              <div class="item-details">
-                <p>Energy Surge</p>
-                <span>Boosts mining x3 for 30 min</span>
-                <button class="buy-item" data-item="energy-surge">Buy for 120 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/shield.png');"></div>
-              <div class="item-details">
-                <p>Thermal Shield</p>
-                <span>Reduces cooldown by 50%</span>
-                <button class="buy-item" data-item="thermal-shield">Buy for 150 H/s</button>
-              </div>
-            </div>
-          </div>
-          <div class="store-items" id="cosmetics">
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/theme1.png');"></div>
-              <div class="item-details">
-                <p>Neon Theme</p>
-                <span>Customizes farm visuals</span>
-                <button class="buy-item" data-item="neon-theme">Buy for 150 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/theme2.png');"></div>
-              <div class="item-details">
-                <p>Holographic Cooler</p>
-                <span>Unique cooler animation</span>
-                <button class="buy-item" data-item="holo-cooler">Buy for 100 H/s</button>
-              </div>
-            </div>
-            <div class="store-item">
-              <div class="item-icon" style="background-image: url('/assets/images/theme3.png');"></div>
-              <div class="item-details">
-                <p>Cyber Grid Skin</p>
-                <span>Futuristic grid overlay</span>
-                <button class="buy-item" data-item="cyber-grid">Buy for 200 H/s</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Вкладка: Stats -->
-      <div class="tab-content stats-tab" id="stats">
-        <div class="stats-container">
-          <h2>Statistics</h2>
-          <p>Total Hashes Mined: <span id="total-hashes">0</span></p>
-          <p>Upgrades Purchased: <span id="upgrades-count">0</span></p>
-          <p>Rank: <span id="rank">N/A</span></p>
-          <button class="action-leaderboard">View Leaderboard</button>
-        </div>
-      </div>
-      <!-- Вкладка: Settings -->
-      <div class="tab-content settings-tab" id="settings">
-        <div class="settings-container">
-          <h2>Settings</h2>
-          <p>Sound: <button class="action-sound">Toggle On/Off</button></p>
-          <p>Notifications: <button class="action-notifications">Enable/Disable</button></p>
-        </div>
-      </div>
-      <!-- Вкладка: Tasks -->
-      <div class="tab-content tasks-tab" id="tasks">
-        <div class="tasks-container">
-          <h2>Daily Tasks</h2>
-          <div class="task">
-            <p>Mine 10 H/s</p>
-            <button class="action-task" data-task="mine-10">Claim Reward</button>
-          </div>
-          <div class="task">
-            <p>Watch 3 Ads</p>
-            <button class="action-task" data-task="watch-ads">Claim Reward</button>
-          </div>
-        </div>
-      </div>
-      <!-- Вкладка: Players -->
-      <div class="tab-content players-tab" id="players">
-        <div class="players-container">
-          <h2>Other Players</h2>
-          <div class="player-list">
-            <div class="player-item">
-              <span class="player-name">CyberMinerX</span>
-              <span>Rank: 1 | Hashrate: 5000 H/s</span>
-              <button class="action-view-profile" data-player="cyberminerx">View Profile</button>
-            </div>
-            <div class="player-item">
-              <span class="player-name">NeonHash</span>
-              <span>Rank: 5 | Hashrate: 2500 H/s</span>
-              <button class="action-view-profile" data-player="neonhash">View Profile</button>
-            </div>
-            <div class="player-item">
-              <span class="player-name">QuantumRig</span>
-              <span>Rank: 10 | Hashrate: 1000 H/s</span>
-              <button class="action-view-profile" data-player="quantumrig">View Profile</button>
-            </div>
-          </div>
-          <h2>Market</h2>
-          <div class="market-categories">
-            <button class="market-category active" data-market-category="performance">Performance</button>
-            <button class="market-category" data-market-category="efficiency">Efficiency</button>
-            <button class="market-category" data-market-category="aesthetics">Aesthetics</button>
-          </div>
-          <div class="market-items active" id="performance">
-            <div class="market-item rarity-common">
-              <div class="item-icon" style="background-image: url('/assets/images/chip1.png');"></div>
-              <div class="item-details">
-                <p>Basic Overclock Chip <span class="rarity">Common</span></p>
-                <span>Boosts hash rate by 50 H/s</span>
-                <button class="sell-item" data-chip="basic-overclock">Sell for 25 H/s</button>
-              </div>
-            </div>
-            <div class="market-item rarity-rare">
-              <div class="item-icon" style="background-image: url('/assets/images/chip2.png');"></div>
-              <div class="item-details">
-                <p>Turbo Processor <span class="rarity">Rare</span></p>
-                <span>Boosts hash rate by 200 H/s</span>
-                <button class="sell-item" data-chip="turbo-processor">Sell for 100 H/s</button>
-              </div>
-            </div>
-            <div class="market-item rarity-epic">
-              <div class="item-icon" style="background-image: url('/assets/images/chip3.png');"></div>
-              <div class="item-details">
-                <p>Quantum Core <span class="rarity">Epic</span></p>
-                <span>Boosts hash rate by 500 H/s</span>
-                <button class="sell-item" data-chip="quantum-core">Sell for 250 H/s</button>
-              </div>
-            </div>
-          </div>
-          <div class="market-items" id="efficiency">
-            <div class="market-item rarity-common">
-              <div class="item-icon" style="background-image: url('/assets/images/chip4.png');"></div>
-              <div class="item-details">
-                <p>Power Saver Chip <span class="rarity">Common</span></p>
-                <span>Reduces energy use by 10%</span>
-                <button class="sell-item" data-chip="power-saver">Sell for 20 H/s</button>
-              </div>
-            </div>
-            <div class="market-item rarity-rare">
-              <div class="item-icon" style="background-image: url('/assets/images/chip5.png');"></div>
-              <div class="item-details">
-                <p>Coolant Module <span class="rarity">Rare</span></p>
-                <span>Reduces energy use by 25%</span>
-                <button class="sell-item" data-chip="coolant-module">Sell for 80 H/s</button>
-              </div>
-            </div>
-            <div class="market-item rarity-legendary">
-              <div class="item-icon" style="background-image: url('/assets/images/chip6.png');"></div>
-              <div class="item-details">
-                <p>Zero-Waste Core <span class="rarity">Legendary</span></p>
-                <span>Reduces energy use by 50%</span>
-                <button class="sell-item" data-chip="zero-waste">Sell for 500 H/s</button>
-              </div>
-            </div>
-          </div>
-          <div class="market-items" id="aesthetics">
-            <div class="market-item rarity-common">
-              <div class="item-icon" style="background-image: url('/assets/images/chip7.png');"></div>
-              <div class="item-details">
-                <p>LED Strip Chip <span class="rarity">Common</span></p>
-                <span>Adds glowing LED visuals</span>
-                <button class="sell-item" data-chip="led-strip">Sell for 15 H/s</button>
-              </div>
-            </div>
-            <div class="market-item rarity-epic">
-              <div class="item-icon" style="background-image: url('/assets/images/chip8.png');"></div>
-              <div class="item-details">
-                <p>Holo Display <span class="rarity">Epic</span></p>
-                <span>Projects holographic effects</span>
-                <button class="sell-item" data-chip="holo-display">Sell for 200 H/s</button>
-              </div>
-            </div>
-            <div class="market-item rarity-legendary">
-              <div class="item-icon" style="background-image: url('/assets/images/chip9.png');"></div>
-              <div class="item-details">
-                <p>Neon Matrix Chip <span class="rarity">Legendary</span></p>
-                <span>Full neon rig customization</span>
-                <button class="sell-item" data-chip="neon-matrix">Sell for 600 H/s</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Вкладка: Deposit/Withdraw -->
-      <div class="tab-content deposit-withdraw-tab" id="deposit-withdraw">
-        <div class="deposit-withdraw-container">
-          <h2>Deposit & Withdraw</h2>
-          <div class="wallet-section">
-            <p>Wallet Status: <span id="wallet-status">Not Connected</span></p>
-            <button class="action-connect-wallet">Connect Lightning Wallet</button>
-          </div>
-          <div class="deposit-section">
-            <h3>Deposit Lightning ⚡</h3>
-            <p>Enter amount to deposit:</p>
-            <input type="number" id="deposit-amount" min="1" placeholder="Amount (⚡)" />
-            <button class="action-deposit">Deposit</button>
-            <div class="instructions">
-              <h4>How to Deposit:</h4>
-              <ol>
-                <li>Connect a Lightning wallet (e.g., Alby, Wallet of Satoshi).</li>
-                <li>Enter the amount of ⚡ to deposit (minimum 1 ⚡).</li>
-                <li>Scan the QR code or copy the invoice provided.</li>
-                <li>Confirm the transaction in your wallet.</li>
-                <li>Wait for confirmation (usually instant).</li>
-              </ol>
-            </div>
-          </div>
-          <div class="withdraw-section">
-            <h3>Withdraw Lightning ⚡</h3>
-            <p>Enter amount to withdraw (min 10 ⚡):</p>
-            <input type="number" id="withdraw-amount" min="10" placeholder="Amount (⚡)" />
-            <button class="action-withdraw">Withdraw</button>
-            <div class="instructions">
-              <h4>How to Withdraw:</h4>
-              <ol>
-                <li>Ensure your wallet is connected.</li>
-                <li>Enter the amount of ⚡ to withdraw (minimum 10 ⚡).</li>
-                <li>Provide a Lightning invoice or address.</li>
-                <li>Confirm the transaction.</li>
-                <li>Receive ⚡ in your wallet (usually instant).</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+    <div class="error-message" id="error-message"></div>
+    <div class="user-info" id="user-info" style="display: none;">
+      <div class="username" id="username">User</div>
+      <div class="balance">Баланс: <span id="balance">0.00</span> H</div>
+    </div>
   </div>
-  <script src="/js/core/app.js"></script>
+  <div class="table-container">
+    <h2>Все пользователи</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Имя</th>
+          <th>Баланс</th>
+        </tr>
+      </thead>
+      <tbody id="user-table-body"></tbody>
+    </table>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="farm">Farm</button>
+    <button class="tab" data-tab="store">Store</button>
+    <button class="tab" data-tab="stats">Stats</button>
+    <button class="tab" data-tab="settings">Settings</button>
+    <button class="tab" data-tab="tasks">Tasks</button>
+    <button class="tab" data-tab="players">Players</button>
+    <button class="tab" data-tab="deposit-withdraw">Deposit/Withdraw</button>
+  </div>
+
+  <div id="farm" class="tab-content active">
+    <div class="farm-info">
+      <p>User: <span id="farm-username">User</span></p>
+      <p>Hashes: <span id="farm-hashes">0</span> H/s</p>
+      <p>Lightning: <span id="farm-lightning">0</span> ⚡</p>
+      <p>Exchange: 1 ⚡ → 100 H/s | 100 H/s → 1 ⚡</p>
+    </div>
+    <div class="farm-equipment">
+      <h3>Equipment</h3>
+      <div class="equipment-item">Small Mining Rig (0.001 H/s)</div>
+    </div>
+    <div class="farm-actions">
+      <button>Upgrade Farm (10 H/s)</button>
+      <button>Boost Mining (25 H/s)</button>
+    </div>
+    <div class="ad-section">
+      <p>Watch ad to earn 5 H/s!</p>
+      <button>Watch Ad</button>
+    </div>
+  </div>
+
+  <div id="store" class="tab-content">
+    <div class="store-tabs">
+      <button class="store-tab active" data-store-tab="equipment">Equipment</button>
+      <button class="store-tab" data-store-tab="boosters">Boosters</button>
+      <button class="store-tab" data-store-tab="cosmetics">Cosmetics</button>
+    </div>
+    <div id="equipment" class="store-content active">
+      <div class="store-item">
+        <h4>Advanced Mining Rig</h4>
+        <p>Increases rate by 100 H/s</p>
+        <button>Buy for 50 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Quantum Miner</h4>
+        <p>Increases rate by 500 H/s</p>
+        <button>Buy for 200 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Hyper Processor</h4>
+        <p>Increases rate by 1000 H/s</p>
+        <button>Buy for 500 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Neural Network Node</h4>
+        <p>Increases rate by 2500 H/s</p>
+        <button>Buy for 1200 H/s</button>
+      </div>
+    </div>
+    <div id="boosters" class="store-content">
+      <div class="store-item">
+        <h4>Super Cooler</h4>
+        <p>Boosts mining x2 for 1 hour</p>
+        <button>Buy for 75 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Energy Surge</h4>
+        <p>Boosts mining x3 for 30 min</p>
+        <button>Buy for 120 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Thermal Shield</h4>
+        <p>Reduces cooldown by 50%</p>
+        <button>Buy for 150 H/s</button>
+      </div>
+    </div>
+    <div id="cosmetics" class="store-content">
+      <div class="store-item">
+        <h4>Neon Theme</h4>
+        <p>Customizes farm visuals</p>
+        <button>Buy for 150 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Holographic Cooler</h4>
+        <p>Unique cooler animation</p>
+        <button>Buy for 100 H/s</button>
+      </div>
+      <div class="store-item">
+        <h4>Cyber Grid Skin</h4>
+        <p>Futuristic grid overlay</p>
+        <button>Buy for 200 H/s</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stats" class="tab-content">
+    <h3>Statistics</h3>
+    <p>Total Hashes Mined: <span id="total-hashes">0</span></p>
+    <p>Upgrades Purchased: <span id="upgrades-purchased">0</span></p>
+    <p>Rank: <span id="rank">N/A</span></p>
+    <button>View Leaderboard</button>
+  </div>
+
+  <div id="settings" class="tab-content">
+    <h3>Settings</h3>
+    <p>Sound: <button id="sound-toggle">Toggle On/Off</button></p>
+    <p>Notifications: <button id="notifications-toggle">Enable/Disable</button></p>
+  </div>
+
+  <div id="tasks" class="tab-content">
+    <h3>Daily Tasks</h3>
+    <div class="task">
+      <p>Mine 10 H/s</p>
+      <button>Claim Reward</button>
+    </div>
+    <div class="task">
+      <p>Watch 3 Ads</p>
+      <button>Claim Reward</button>
+    </div>
+  </div>
+
+  <div id="players" class="tab-content">
+    <h3>Other Players</h3>
+    <div class="player">
+      <p>CyberMinerX | Rank: 1 | Hashrate: 5000 H/s</p>
+      <button>View Profile</button>
+    </div>
+    <div class="player">
+      <p>NeonHash | Rank: 5 | Hashrate: 2500 H/s</p>
+      <button>View Profile</button>
+    </div>
+    <div class="player">
+      <p>QuantumRig | Rank: 10 | Hashrate: 1000 H/s</p>
+      <button>View Profile</button>
+    </div>
+    <div class="market">
+      <h3>Market</h3>
+      <div class="market-tabs">
+        <button class="market-tab active" data-market-tab="performance">Performance</button>
+        <button class="market-tab" data-market-tab="efficiency">Efficiency</button>
+        <button class="market-tab" data-market-tab="aesthetics">Aesthetics</button>
+      </div>
+      <div id="performance" class="market-content active">
+        <div class="market-item">
+          <h4>Basic Overclock Chip (Common)</h4>
+          <p>Boosts hash rate by 50 H/s</p>
+          <button>Sell for 25 H/s</button>
+        </div>
+        <div class="market-item">
+          <h4>Turbo Processor (Rare)</h4>
+          <p>Boosts hash rate by 200 H/s</p>
+          <button>Sell for 100 H/s</button>
+        </div>
+        <div class="market-item">
+          <h4>Quantum Core (Epic)</h4>
+          <p>Boosts hash rate by 500 H/s</p>
+          <button>Sell for 250 H/s</button>
+        </div>
+      </div>
+      <div id="efficiency" class="market-content">
+        <div class="market-item">
+          <h4>Power Saver Chip (Common)</h4>
+          <p>Reduces energy use by 10%</p>
+          <button>Sell for 20 H/s</button>
+        </div>
+        <div class="market-item">
+          <h4>Coolant Module (Rare)</h4>
+          <p>Reduces energy use by 25%</p>
+          <button>Sell for 80 H/s</button>
+        </div>
+        <div class="market-item">
+          <h4>Zero-Waste Core (Legendary)</h4>
+          <p>Reduces energy use by 50%</p>
+          <button>Sell for 500 H/s</button>
+        </div>
+      </div>
+      <div id="aesthetics" class="market-content">
+        <div class="market-item">
+          <h4>LED Strip Chip (Common)</h4>
+          <p>Adds glowing LED visuals</p>
+          <button>Sell for 15 H/s</button>
+        </div>
+        <div class="market-item">
+          <h4>Holo Display (Epic)</h4>
+          <p>Projects holographic effects</p>
+          <button>Sell for 200 H/s</button>
+        </div>
+        <div class="market-item">
+          <h4>Neon Matrix Chip (Legendary)</h4>
+          <p>Full neon animation</p>
+          <button>Sell for 600 H/s</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="deposit-withdraw" class="tab-content">
+    <h3>Deposit & Withdraw</h3>
+    <div class="wallet-status">
+      <p>Wallet Status: Not Connected</p>
+      <button>Connect Lightning Wallet</button>
+    </div>
+    <div class="deposit">
+      <h4>Deposit Lightning ⚡</h4>
+      <input type="number" placeholder="Enter amount to deposit">
+      <button>Deposit</button>
+      <div class="instructions">
+        <h5>Как внести депозит:</h5>
+        <ul>
+          <li>Подключите кошелёк Lightning (например, Alby, Wallet of Satoshi).</li>
+          <li>Введите сумму для депозита (минимум 1 ⚡).</li>
+          <li>Отсканируйте QR-код или скопируйте счёт.</li>
+          <li>Подтвердите транзакцию.</li>
+          <li>Дождитесь подтверждения (обычно мгновенно).</li>
+        </ul>
+      </div>
+    </div>
+    <div class="withdraw">
+      <h4>Withdraw Lightning ⚡</h4>
+      <input type="number" placeholder="Enter amount to withdraw (min 10 ⚡)">
+      <button>Withdraw</button>
+      <div class="instructions">
+        <h5>Как вывести:</h5>
+        <ul>
+          <li>Убедитесь, что кошелёк подключён.</li>
+          <li>Введите сумму для вывода (минимум 10 ⚡).</li>
+          <li>Укажите счёт или адрес Lightning.</li>
+          <li>Подтвердите транзакцию.</li>
+          <li>Получите ⚡ в кошелёк (обычно мгновенно).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
