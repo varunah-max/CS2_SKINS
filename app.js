@@ -1,354 +1,133 @@
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.Telegram && window.Telegram.WebApp) {
-        const user = window.Telegram.WebApp.initDataUnsafe.user;
-        if (user) {
-            // Обновление баланса каждую секунду
-            let mockBalance = 0.00;
+  let chatId = null;
 
-            setInterval(async () => {
-                try {
-                    // ======= [БЛОК: ПОЛУЧЕНИЕ БАЛАНСА ПО CHAT_ID] =======
-                    const balanceResponse = await fetch('/get_balance_by_chat_id', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: user.id }) // Предполагается, что user.id — это chat_id
-                    });
-
-                    if (!balanceResponse.ok) {
-                        throw new Error(`HTTP error: ${balanceResponse.status}`);
-                    }
-
-                    const balanceResult = await balanceResponse.json();
-
-                    if (balanceResult.balance !== undefined) {
-                        const hashCount = document.getElementById('hash-count');
-                        if (hashCount) {
-                            hashCount.textContent = balanceResult.balance.toFixed(2);
-                            console.log(`Updated balance: ${balanceResult.balance.toFixed(2)} H`);
-                        }
-                    } else {
-                        console.warn('Invalid balance response:', balanceResult);
-                    }
-                } catch (error) {
-                    console.log('Balance fetch failed:', error.message);
-                    mockBalance += 0.01;
-                    const hashCount = document.getElementById('hash-count');
-                    if (hashCount) {
-                        hashCount.textContent = mockBalance.toFixed(2);
-                        console.log(`Using mock balance: ${mockBalance.toFixed(2)} H`);
-                        }
-                }
-
-                try {
-                    // ======= [БЛОК: ПОЛУЧЕНИЕ ПРОФИЛЯ] =======
-                    const profileResponse = await fetch('/get_profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: user.id })
-                    });
-
-                    if (!profileResponse.ok) {
-                        throw new Error(`HTTP error: ${profileResponse.status}`);
-                    }
-
-                    const profileResult = await profileResponse.json();
-
-                    if (profileResult.user_id) {
-                        const userId = document.getElementById('user-id');
-                        const referrals = document.getElementById('referrals');
-                        const referralLink = document.getElementById('referral-link');
-
-                        if (userId) userId.textContent = profileResult.user_id;
-                        if (referrals) referrals.textContent = profileResult.referrals;
-
-                        if (referralLink) {
-                            const link = `https://t.me/${profileResult.channel_nickname}?start=${profileResult.user_id}`;
-                            referralLink.textContent = link;
-                            referralLink.href = link;
-                            console.log(`Updated referral link: ${link}`);
-                        }
-                    } else {
-                        console.warn('Invalid profile response:', profileResult);
-                    }
-                } catch (error) {
-                    console.log('Profile fetch failed:', error.message);
-                }
-
-            }, 1000);
-        } else {
-            console.error('Telegram user data not available');
-            const hashCount = document.getElementById('hash-count');
-            if (hashCount) hashCount.textContent = '0.00';
-        }
+  // Telegram Web App
+  if (window.Telegram && window.Telegram.WebApp) {
+    const user = window.Telegram.WebApp.initDataUnsafe.user;
+    if (user && user.id) {
+      chatId = user.id;
+      console.log('Telegram user chat_id:', chatId);
     } else {
-        console.error('Telegram Web App not initialized');
-        const hashCount = document.getElementById('hash-count');
-        if (hashCount) hashCount.textContent = '0.00';
+      console.error('Telegram user data not available');
+      showError('Не удалось получить данные Telegram пользователя');
     }
+  } else {
+    console.error('Telegram Web App not initialized');
+    showError('Telegram Web App не инициализирован');
+  }
 
-    // Переключение вкладок
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetTab = tab.getAttribute('data-tab');
-
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-
-            tab.classList.add('active');
-            document.getElementById(targetTab).classList.add('active');
-        });
+  // Tabs
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
     });
+  });
 
-    // Переключение категорий в магазине
-    const storeCategories = document.querySelectorAll('.category');
-    const storeItems = document.querySelectorAll('.store-items');
-
-    storeCategories.forEach(category => {
-        category.addEventListener('click', () => {
-            const targetCategory = category.getAttribute('data-category');
-
-            storeCategories.forEach(cat => cat.classList.remove('active'));
-            storeItems.forEach(item => item.classList.remove('active'));
-
-            category.classList.add('active');
-            document.getElementById(targetCategory).classList.add('active');
-        });
+  // Store Tabs
+  const storeTabs = document.querySelectorAll('.store-tab');
+  const storeContents = document.querySelectorAll('.store-content');
+  storeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      storeTabs.forEach(t => t.classList.remove('active'));
+      storeContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.storeTab).classList.add('active');
     });
+  });
 
-    // Переключение категорий в рынке
-    const marketCategories = document.querySelectorAll('.market-category');
-    const marketItems = document.querySelectorAll('.market-items');
-
-    marketCategories.forEach(category => {
-        category.addEventListener('click', () => {
-            const targetCategory = category.getAttribute('data-market-category');
-
-            marketCategories.forEach(cat => cat.classList.remove('active'));
-            marketItems.forEach(item => item.classList.remove('active'));
-
-            category.classList.add('active');
-            document.getElementById(targetCategory).classList.add('active');
-        });
+  // Market Tabs
+  const marketTabs = document.querySelectorAll('.market-tab');
+  const marketContents = document.querySelectorAll('.market-content');
+  marketTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      marketTabs.forEach(t => t.classList.remove('active'));
+      marketContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.marketTab).classList.add('active');
     });
+  });
 
-    // Обработка кликов по кнопкам
-    document.querySelectorAll('.buy-item').forEach(button => {
-        button.addEventListener('click', async () => {
-            const item = button.getAttribute('data-item');
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'buy', data: item })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log(`Buy item: ${item}`);
-            }
-        });
-    });
+  // Error handling
+  function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+      errorDiv.style.display = 'none';
+    }, 5000);
+  }
 
-    document.querySelectorAll('.sell-item').forEach(button => {
-        button.addEventListener('click', async () => {
-            const chip = button.getAttribute('data-chip');
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'sell', data: chip })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log(`Sell chip: ${chip}`);
-            }
-        });
-    });
+  // Fetch current user data
+  async function fetchUserData() {
+    if (!chatId) return;
 
-    document.querySelectorAll('.action-upgrade').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'upgrade', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('Upgrade Farm clicked');
-            }
-        });
-    });
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/user_by_chat_id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId })
+      });
 
-    document.querySelectorAll('.action-boost').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'boost', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('Boost Mining clicked');
-            }
-        });
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Ошибка сервера:', response.status, errorText);
+        throw new Error(`HTTP error: ${response.status} - ${errorText}`);
+      }
 
-    document.querySelectorAll('.action-ad').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'ad', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('Watch Ad clicked');
-            }
-        });
-    });
+      const data = await response.json();
+      console.log('Ответ сервера:', data);
+      if (data.error) {
+        showError(data.error);
+        document.getElementById('user-info').style.display = 'none';
+        return;
+      }
 
-    document.querySelectorAll('.action-leaderboard').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'leaderboard', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('View Leaderboard clicked');
-            }
-        });
-    });
+      document.getElementById('username').textContent = data.username || 'Unknown';
+      document.getElementById('balance').textContent = data.balance.toFixed(2);
+      document.getElementById('user-info').style.display = 'block';
+    } catch (error) {
+      console.error('Ошибка получения данных:', error);
+      showError(`Не удалось получить данные: ${error.message}`);
+      document.getElementById('user-info').style.display = 'none';
+    }
+  }
 
-    document.querySelectorAll('.action-sound').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'sound', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('Toggle Sound clicked');
-            }
+  // Update balances and table
+  async function updateBalances() {
+    try {
+      // Update table of all users
+      const usersResponse = await fetch('http://127.0.0.1:5000/api/users');
+      if (usersResponse.ok) {
+        const users = await usersResponse.json();
+        console.log('Пользователи:', users);
+        const tbody = document.getElementById('user-table-body');
+        tbody.innerHTML = '';
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${user.username}</td><td>${user.balance.toFixed(2)}</td>`;
+          tbody.appendChild(row);
         });
-    });
+      } else {
+        console.error('Ошибка /api/users:', usersResponse.status);
+      }
 
-    document.querySelectorAll('.action-notifications').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'notifications', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('Toggle Notifications clicked');
-            }
-        });
-    });
+      // Update current user
+      if (chatId) {
+        await fetchUserData();
+      }
+    } catch (error) {
+      console.error('Ошибка обновления данных:', error);
+    }
+  }
 
-    document.querySelectorAll('.action-wallet').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'wallet', data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log('Connect Wallet clicked');
-            }
-        });
-    });
-
-    document.querySelectorAll('.action-task').forEach(button => {
-        button.addEventListener('click', async () => {
-            const task = button.getAttribute('data-task');
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'task', data: task })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log(`Claim Task Reward: ${task}`);
-            }
-        });
-    });
-
-    document.querySelectorAll('.action-view-profile').forEach(button => {
-        button.addEventListener('click', async () => {
-            const player = button.getAttribute('data-player');
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'view_profile', data: player })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log(`View profile: ${player}`);
-            }
-        });
-    });
-
-    document.querySelectorAll('.action-exchange').forEach(button => {
-        button.addEventListener('click', async () => {
-            const action = button.getAttribute('data-action');
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: action, data: null })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log(`${action} clicked`);
-            }
-        });
-    });
-
-    document.querySelectorAll('.action-deposit, .action-withdraw').forEach(button => {
-        button.addEventListener('click', async () => {
-            const action = button.classList.contains('action-deposit') ? 'deposit' : 'withdraw';
-            const amountInput = button.previousElementSibling;
-            const amount = amountInput ? amountInput.value : null;
-            try {
-                const response = await fetch('/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: action, data: amount })
-                });
-                const result = await response.json();
-                console.log(result.message);
-            } catch (error) {
-                console.log(`${action} ${amount} clicked`);
-            }
-        });
-    });
+  // Initial fetch and periodic update
+  if (chatId) {
+    fetchUserData();
+  }
+  setInterval(updateBalances, 1000);
 });
