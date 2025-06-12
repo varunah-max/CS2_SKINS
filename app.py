@@ -39,7 +39,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 username TEXT,
-                chat_id INTEGER,
+                "chat id" INTEGER,
                 balance REAL DEFAULT 0.0,
                 referrer_id INTEGER
             )
@@ -53,10 +53,10 @@ class Database:
     def add_user(self, user_id, username, chat_id, referrer_id=None):
         if not self.user_exists(user_id):
             if referrer_id:
-                self.cursor.execute("INSERT INTO users (user_id, username, chat_id, balance, referrer_id) VALUES (?,?,?,?,?)",
+                self.cursor.execute('INSERT INTO users (user_id, username, "chat id", balance, referrer_id) VALUES (?,?,?,?,?)',
                     (user_id, username, chat_id, 0.0, referrer_id))
             else:
-                self.cursor.execute("INSERT INTO users (user_id, username, chat_id, balance) VALUES (?,?,?,?)",
+                self.cursor.execute('INSERT INTO users (user_id, username, "chat id", balance) VALUES (?,?,?,?)',
                     (user_id, username, chat_id, 0.0))
             self.connection.commit()
 
@@ -70,7 +70,7 @@ class Database:
         return result[0] if result else 0.0
 
     def get_profile(self, user_id):
-        self.cursor.execute("SELECT username, balance, referrer_id FROM users WHERE user_id = ?", (user_id,))
+        self.cursor.execute('SELECT username, balance, referrer_id FROM users WHERE user_id = ?', (user_id,))
         result = self.cursor.fetchone()
         if result:
             username, balance, referrer_id = result
@@ -95,6 +95,20 @@ class Database:
     def close(self):
         self.connection.close()
 
+# Новый маршрут для получения баланса по chat_id
+@app.route('/get_balance_by_chat_id', methods=['POST'])
+def get_balance_by_chat_id():
+    data = request.json
+    chat_id = data.get('chat_id')
+    if chat_id:
+        db = Database("users.db")
+        db.cursor.execute('SELECT balance FROM users WHERE "chat id" = ?', (chat_id,))
+        result = db.cursor.fetchone()
+        db.close()
+        if result:
+            return jsonify({"balance": result[0]})
+        return jsonify({"error": "user not found"}), 404
+    return jsonify({"error": "chat_id required"}), 400
 
 # Фоновая задача для начисления
 async def accrue_loop():
@@ -136,7 +150,6 @@ def get_profile():
             return jsonify(profile)
         return jsonify({"error": "user not found"}), 404
     return jsonify({"error": "user_id required"}), 400
-
 
 # Команды Telegram
 @dp.message(Command("start"))
@@ -183,7 +196,6 @@ async def handle_profile(message: Message):
             f"Balance: {profile['balance']:.2f} H\n"
             f"Referral link: https://t.me/{CHANNEL_NICKNAME}?start={user_id}"
         )
-
 
 # Запуск всего приложения
 if __name__ == '__main__':
