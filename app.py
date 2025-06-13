@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Telegram Web App
   let telegramUserId = null;
 
   if (window.Telegram && window.Telegram.WebApp) {
@@ -19,43 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('Telegram Web App не инициализирован. Запустите приложение через Telegram.');
   }
 
-  // Tabs
-  const tabs = document.querySelectorAll('.tab');
-  const tabContents = document.querySelectorAll('.tab-content');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab).classList.add('active');
-    });
-  });
-
-  // Store Tabs
-  const storeTabs = document.querySelectorAll('.store-tab');
-  const storeContents = document.querySelectorAll('.store-content');
-  storeTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      storeTabs.forEach(t => t.classList.remove('active'));
-      storeContents.forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.storeTab).classList.add('active');
-    });
-  });
-
-  // Market Tabs
-  const marketTabs = document.querySelectorAll('.market-tab');
-  const marketContents = document.querySelectorAll('.market-content');
-  marketTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      marketTabs.forEach(t => t.classList.remove('active'));
-      marketContents.forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.marketTab).classList.add('active');
-    });
-  });
-
-  // Error Display
   function showError(message) {
     const errorDiv = document.getElementById('error-message');
     errorDiv.textContent = message;
@@ -65,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 5000);
   }
 
-  // Fetch User Data
   async function fetchUserData(chatId) {
     try {
       const response = await fetch('http://127.0.0.1:5000/api/user_by_chat_id', {
@@ -89,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       document.getElementById('username').textContent = data.username || 'Unknown';
-      document.getElementById('username-farm').textContent = data.username || 'Unknown';
       document.getElementById('balance').textContent = data.balance.toFixed(2);
       document.getElementById('user-info').style.display = 'block';
     } catch (error) {
@@ -99,34 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Update Balances
-  async function updateBalances() {
-    try {
-      // Update all users table
-      const usersResponse = await fetch('http://127.0.0.1:5000/api/users');
-      if (usersResponse.ok) {
-        const users = await usersResponse.json();
-        console.log('Пользователи:', users);
-        const tbody = document.getElementById('user-table-body');
-        tbody.innerHTML = '';
-        users.forEach(user => {
-          const row = document.createElement('tr');
-          row.innerHTML = `<td>${user.username}</td><td>${user.balance.toFixed(2)}</td>`;
-          tbody.appendChild(row);
-        });
-      } else {
-        console.error('Ошибка /api/users:', usersResponse.status);
-      }
-
-      // Update current user's stats if telegramUserId is available
-      if (telegramUserId) {
-        fetchUserData(telegramUserId);
-      }
-    } catch (error) {
-      console.error('Ошибка обновления данных:', error);
+  async function updateBalance() {
+    if (telegramUserId) {
+      fetchUserData(telegramUserId);
     }
   }
 
-  setInterval(updateBalances, 1000);
-  updateBalances();
+  setInterval(updateBalance, 1000);
+  updateBalance();
 });
