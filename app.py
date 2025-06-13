@@ -1,62 +1,132 @@
-import asyncio
-import sqlite3
-import threading
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+document.addEventListener('DOMContentLoaded', () => {
+  // Telegram Web App
+  let telegramUserId = null;
 
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["https://varunah-max.github.io", "http://localhost:*", "*"]}})
+  if (window.Telegram && window.Telegram.WebApp) {
+    const webApp = window.Telegram.WebApp;
+    webApp.ready();
+    const user = webApp.initDataUnsafe.user;
+    if (user) {
+      console.log('Telegram user:', user);
+      telegramUserId = user.id;
+      fetchUserData(telegramUserId);
+    } else {
+      console.error('Telegram user data not available');
+      showError('Не удалось получить данные пользователя Telegram');
+    }
+  } else {
+    console.error('Telegram Web App not initialized');
+    showError('Telegram Web App не инициализирован. Запустите приложение через Telegram.');
+  }
 
-DATABASE = 'users.db'
+  // Tabs
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+  // Store Tabs
+  const storeTabs = document.querySelectorAll('.store-tab');
+  const storeContents = document.querySelectorAll('.store-content');
+  storeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      storeTabs.forEach(t => t.classList.remove('active'));
+      storeContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.storeTab).classList.add('active');
+    });
+  });
 
-@app.route('/api/users', methods=['GET'])
-def get_users():
-    conn = get_db_connection()
-    users = conn.execute('SELECT username, balance FROM users').fetchall()
-    conn.close()
-    return jsonify([{"username": u["username"], "balance": u["balance"]} for u in users])
+  // Market Tabs
+  const marketTabs = document.querySelectorAll('.market-tab');
+  const marketContents = document.querySelectorAll('.market-content');
+  marketTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      marketTabs.forEach(t => t.classList.remove('active'));
+      marketContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.marketTab).classList.add('active');
+    });
+  });
 
-@app.route('/api/user_by_chat_id', methods=['POST'])
-def get_user_by_chat_id():
-    data = request.json
-    chat_id = data.get('chat_id')
-    if chat_id is None:
-        return jsonify({"error": "chat_id required"}), 400
-    try:
-        chat_id = int(chat_id)
-    except ValueError:
-        return jsonify({"error": "chat_id must be a valid integer"}), 400
-    conn = get_db_connection()
-    user = conn.execute('SELECT username, balance FROM users WHERE chat_id = ?', (chat_id,)).fetchone()
-    conn.close()
-    if user:
-        return jsonify({"username": user["username"], "balance": user["balance"]})
-    return jsonify({"error": "user not found"}), 404
+  // Error Display
+  function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+      errorDiv.style.display = 'none';
+    }, 5000);
+  }
 
-async def accrue_loop():
-    conn = get_db_connection()
-    try:
-        while True:
-            conn.execute('UPDATE users SET balance = balance + 0.01')
-            conn.commit()
-            await asyncio.sleep(1)
-    except Exception as e:
-        print(f"Error in accrue_loop: {e}")
-    finally:
-        conn.close()
+  // Fetch User Data
+  async function fetchUserData(chatId) {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/user_by_chat_id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: parseInt(chatId) })
+      });
 
-def start_background_loop():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.create_task(accrue_loop())
-    loop.run_forever()
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Ошибка сервера:', response.status, errorText);
+        throw new Error(`HTTP error: ${response.status} - ${errorText}`);
+      }
 
-if __name__ == '__main__':
-    threading.Thread(target=start_background_loop, daemon=True).start()
-    print("Web API started at http://127.0.0.1:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+      const data = await response.json();
+      console.log('Ответ сервера:', data);
+      if (data.error) {
+        showError(data.error);
+        document.getElementById('user-info').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('username').textContent = data.username || 'Unknown';
+      document.getElementById('username-farm').textContent = data.username || 'Unknown';
+      document.getElementById('balance').textContent = data.balance.toFixed(2);
+      document.getElementById('user-info').style.display = 'block';
+    } catch (error) {
+      console.error('Ошибка получения данных:', error);
+      showError(`Не удалось получить данные: ${error.message}`);
+      document.getElementById('user-info').style.display = 'none';
+    }
+  }
+
+  // Update Balances
+  async function updateBalances() {
+    try {
+      // Update all users table
+      const usersResponse = await fetch('http://127.0.0.1:5000/api/users');
+      if (usersResponse.ok) {
+        const users = await usersResponse.json();
+        console.log('Пользователи:', users);
+        const tbody = document.getElementById('user-table-body');
+        tbody.innerHTML = '';
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${user.username}</td><td>${user.balance.toFixed(2)}</td>`;
+          tbody.appendChild(row);
+        });
+      } else {
+        console.error('Ошибка /api/users:', usersResponse.status);
+      }
+
+      // Update current user's stats if telegramUserId is available
+      if (telegramUserId) {
+        fetchUserData(telegramUserId);
+      }
+    } catch (error) {
+      console.error('Ошибка обновления данных:', error);
+    }
+  }
+
+  setInterval(updateBalances, 1000);
+  updateBalances();
+});
