@@ -1,17 +1,54 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Мой профиль</title>
-  <script src="app.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Data</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .container { max-width: 400px; margin: auto; }
+        .error { color: red; }
+        .data { margin-top: 20px; font-size: 18px; }
+    </style>
 </head>
 <body>
-  <h1>Мой Telegram Профиль</h1>
-  <div id="error-message" style="color: red;"></div>
+    <div class="container">
+        <h1>Ваши данные</h1>
+        <div id="user-data" class="data"></div>
+        <div id="error" class="error"></div>
+    </div>
 
-  <div id="user-info" style="display: none; margin-top: 10px;">
-    <p><strong>Имя пользователя:</strong> <span id="username">---</span></p>
-    <p><strong>Баланс:</strong> <span id="balance">0.00</span></p>
-  </div>
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+
+        // Получаем user_id из Telegram Web App
+        const user_id = tg.initDataUnsafe.user?.id;
+
+        if (user_id) {
+            // Отправляем запрос на сервер
+            fetch('/api/user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('error').innerText = data.error;
+                } else {
+                    document.getElementById('user-data').innerText =
+                        `Username: ${data.username}\nBalance: ${data.balance}`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('error').innerText = 'Ошибка: ' + error.message;
+            });
+        } else {
+            document.getElementById('error').innerText = 'Не удалось получить user_id';
+        }
+    </script>
 </body>
 </html>
