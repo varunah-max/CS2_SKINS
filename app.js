@@ -1,19 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Telegram Web App
-  let telegramUserId = null;
   if (window.Telegram && window.Telegram.WebApp) {
     const user = window.Telegram.WebApp.initDataUnsafe.user;
     if (user) {
       console.log('Telegram user:', user);
-      telegramUserId = user.id;
-      fetchUserData(telegramUserId);
     } else {
       console.error('Telegram user data not available');
-      showError('Не удалось получить данные пользователя Telegram');
     }
   } else {
     console.error('Telegram Web App not initialized');
-    showError('Telegram Web App не инициализирован');
   }
 
   // Tabs
@@ -52,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Error Display
+  // User Search
   function showError(message) {
     const errorDiv = document.getElementById('error-message');
     errorDiv.textContent = message;
@@ -62,13 +57,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 5000);
   }
 
-  // Fetch User Data
-  async function fetchUserData(chatId) {
+  window.fetchUserData = async function() {
+    const chatIdInput = document.getElementById('chat-id-input').value.trim();
+    if (!chatIdInput || isNaN(chatIdInput)) {
+      showError('Пожалуйста, введите числовой Chat ID');
+      return;
+    }
+
     try {
       const response = await fetch('http://127.0.0.1:5000/api/user_by_chat_id', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: parseInt(chatId) })
+        body: JSON.stringify({ chat_id: parseInt(chatIdInput) })
       });
 
       if (!response.ok) {
@@ -93,12 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showError(`Не удалось получить данные: ${error.message}`);
       document.getElementById('user-info').style.display = 'none';
     }
-  }
+  };
 
-  // Update Balances
   async function updateBalances() {
     try {
-      // Update all users table
       const usersResponse = await fetch('http://127.0.0.1:5000/api/users');
       if (usersResponse.ok) {
         const users = await usersResponse.json();
@@ -114,12 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Ошибка /api/users:', usersResponse.status);
       }
 
-      // Update current user's stats if telegramUserId is available
-      if (telegramUserId) {
+      const chatIdInput = document.getElementById('chat-id-input').value.trim();
+      if (chatIdInput && !isNaN(chatIdInput)) {
         const userResponse = await fetch('http://127.0.0.1:5000/api/user_by_chat_id', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: parseInt(telegramUserId) })
+          body: JSON.stringify({ chat_id: parseInt(chatIdInput) })
         });
         if (userResponse.ok) {
           const data = await userResponse.json();
