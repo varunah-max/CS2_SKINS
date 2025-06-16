@@ -1,54 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Data</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 400px; margin: auto; }
-        .error { color: red; }
-        .data { margin-top: 20px; font-size: 18px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS2 Skins - Подключение TON-кошелька</title>
+  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+  <script src="https://unpkg.com/tonweb@latest/dist/tonweb.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>Ваши данные</h1>
-        <div id="user-data" class="data"></div>
-        <div id="error" class="error"></div>
-    </div>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full text-center">
+    <h1 class="text-2xl font-bold mb-4">Подключение TON-кошелька</h1>
+    <button id="connectButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4">
+      Подключить кошелек
+    </button>
+    <div id="qrCode" class="hidden mb-4 flex justify-center"></div>
+    <p id="status" class="text-gray-600 mb-4">Нажмите кнопку, чтобы подключить кошелек</p>
+    <p id="balance" class="text-lg font-semibold hidden">Баланс: <span id="balanceValue">0</span> TON</p>
+  </div>
 
-    <script>
-        // Инициализация Telegram Web App
-        const tg = window.Telegram.WebApp;
-        tg.ready();
+  <script>
+    const connector = new TonConnect.TonConnect({
+      manifestUrl: 'https://varunah-max.github.io/CS2_SKINS/tonconnect-manifest.json'
+    });
 
-        // Получаем user_id из Telegram Web App
-        const user_id = tg.initDataUnsafe.user?.id;
+    const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/jsonRPC'));
 
-        if (user_id) {
-            // Отправляем запрос на сервер
-            fetch('/api/user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    document.getElementById('error').innerText = data.error;
-                } else {
-                    document.getElementById('user-data').innerText =
-                        `Username: ${data.username}\nBalance: ${data.balance}`;
-                }
-            })
-            .catch(error => {
-                document.getElementById('error').innerText = 'Ошибка: ' + error.message;
-            });
-        } else {
-            document.getElementById('error').innerText = 'Не удалось получить user_id';
-        }
-    </script>
+    const connectButton = document.getElementById('connectButton');
+    const qrCodeDiv = document.getElementById('qrCode');
+    const status = document.getElementById('status');
+    const balanceDiv = document.getElementById('balance');
+    const balanceValue = document.getElementById('balanceValue');
+
+    async function showQRCode() {
+      qrCodeDiv.innerHTML = '';
+      qrCodeDiv.classList.remove('hidden');
+      const qrCode = await connector.getQR();
+      qrCodeDiv.appendChild(qrCode);
+      status.textContent = 'Отсканируйте QR-код с помощью TON-кошелька';
+    }
+
+    async function getBalance(address) {
+      try {
+        const balance = await tonweb.getBalance(address);
+        const tonBalance = TonWeb.utils.fromNano(balance);
+        balanceValue.textContent = tonBalance;
+        balanceDiv.classList.remove('hidden');
+        status.textContent = 'Кошелек подключен!';
+      } catch (error) {
+        console.error('Ошибка получения баланса:', error);
+        status.textContent = 'Ошибка при получении баланса';
+      }
+    }
+
+    connector.onStatusChange(wallet => {
+      if (wallet) {
+        qrCodeDiv.classList.add('hidden');
+        connectButton.classList.add('hidden');
+        getBalance(wallet.account.address);
+      } else {
+        status.textContent = 'Кошелек не подключен';
+        balanceDiv.classList.add('hidden');
+        connectButton.classList.remove('hidden');
+      }
+    });
+
+    connectButton.addEventListener('click', async () => {
+      try {
+        await showQRCode();
+        await connector.connect();
+      } catch (error) {
+        console.error('Ошибка подключения:', error);
+        status.textContent = 'Ошибка подключения кошелька';
+      }
+    });
+
+    connector.restoreConnection();
+  </script>
 </body>
 </html>
