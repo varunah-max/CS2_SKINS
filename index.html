@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровая Ферма</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 10px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-link { padding: 10px 20px; background: #ddd; border-radius: 5px; cursor: pointer; text-decoration: none; color: black; }
+        .tab-link.active { background: #007bff; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .error-message { color: red; }
+        .success-message { color: green; }
+        .item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .item.Common { background: #e0e0e0; }
+        .item.Uncommon { background: #d0ffd0; }
+        .item.Rare { background: #d0d0ff; }
+        .item.SuperRare { background: #ffd0d0; }
+        .item.Epic { background: #ff00ff; }
+        .item.Mythic { background: #00ffff; }
+        .item.Legendary { background: #ffff00; }
+        button { padding: 10px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input, select { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f4f4f4; }
+        .progress-bar { width: 100%; height: 20px; background: #ddd; border-radius: 5px; overflow: hidden; }
+        .progress-bar div { height: 100%; background: #007bff; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container" id="login-container">
+        <h1>Цифровая Ферма</h1>
+        <div class="tabs">
+            <a href="#login-content" class="tab-link active" id="login">Вход</a>
+            <a href="#register-content" class="tab-link" id="register">Регистрация</a>
+        </div>
+        <div id="login-content" class="tab-content active">
+            <h2>Вход</h2>
+            <div id="login-message" style="display: none;"></div>
+            <input type="text" id="chat-id" placeholder="Chat ID">
+            <input type="text" id="username" placeholder="Имя пользователя">
+            <button onclick="login()">Войти</button>
+            <button onclick="showRegister()">Зарегистрироваться</button>
+        </div>
+        <div id="register-content" class="tab-content">
+            <h2>Регистрация</h2>
+            <div id="register-message" style="display: none;"></div>
+            <input type="text" id="reg-chat-id" placeholder="Chat ID">
+            <input type="text" id="reg-username" placeholder="Имя пользователя">
+            <input type="text" id="reg-referrer-id" placeholder="ID реферала (необязательно)">
+            <button onclick="register()">Зарегистрироваться</button>
+            <button onclick="showLogin()">Вернуться ко входу</button>
+        </div>
+    </div>
+    <div class="container" id="game-container" style="display: none;">
+        <button onclick="logout()">Выход</button>
+        <div class="tabs">
+            <a href="#farm" class="tab-link active">Ферма</a>
+            <a href="#tasks" class="tab-link">Задания</a>
+            <a href="#store" class="tab-link">Магазин</a>
+            <a href="#bonus" class="tab-link">Бонус</a>
+            <a href="#withdrawal" class="tab-link">Вывод</a>
+            <a href="#referrals" class="tab-link">Рефералы</a>
+            <a href="#agreement" class="tab-link">Соглашение</a>
+            <a href="#support" class="tab-link">Тех. поддержка</a>
+        </div>
+        <div id="farm" class="tab-content active">
+            <h2>Ферма</h2>
+            <div id="farm-message" style="display: none;"></div>
+            <p>Пользователь: <span id="farm-username">Гость</span></p>
+            <p>⚡ Молнии: <span id="lightning">0</span></p>
+            <p>🪫 Батарейки: <span id="charged-batteries">0</span></p>
+            <p>👥 Рефералы: <span id="farm-referral-count">0</span></p>
+            <p>Реферальный баланс: $<span id="referral-balance">0</span></p>
+            <p>Заряд батареи: <span id="energy">0</span>/50</p>
+            <div class="progress-bar"><div id="energy-progress" style="width: 0%;"></div></div>
+            <p>Скорость зарядки: <span id="mining-rate">0.001</span> 🪫/s</p>
+            <p>Энергия от рефералов: <span id="referral-energy-rate">0.0000</span> 🪫/s</p>
+            <p>Просмотров рекламы: <span id="ad-views">0</span></p>
+            <h3>Оборудование</h3>
+            <div id="equipment-list"></div>
+            <h3>Действия</h3>
+            <button onclick="buyMicrochip('Rare')">Купить микросхему Rare (50 ⚡)</button>
+            <button onclick="applyBoost()">Применить буст (25 ⚡)</button>
+            <button onclick="watchAd()">Смотреть рекламу (+5 ⚡)</button>
+            <button onclick="exchangeLightning()">Обменять ⚡ на 🪫 Батарейки (100:1)</button>
+        </div>
+        <div id="tasks" class="tab-content">
+            <h2>Задания</h2>
+            <div id="tasks-message" style="display: none;"></div>
+            <div class="item">
+                <p>Смотреть рекламу (Награда: 5 ⚡)</p>
+                <button onclick="completeTask('watch-ad')">Выполнить</button>
+            </div>
+            <div class="item">
+                <p>Подписаться на канал (Награда: 10 ⚡)</p>
+                <button onclick="completeTask('subscribe')">Выполнить</button>
+            </div>
+        </div>
+        <div id="store" class="tab-content">
+            <h2>Магазин</h2>
+            <div id="store-message" style="display: none;"></div>
+            <div class="item Uncommon">
+                <p>Микросхема Uncommon<br>Улучшает зарядку (+0.005 🪫/s)<br>Стоимость: 25 ⚡</p>
+                <button onclick="buyMicrochip('Uncommon')">Купить</button>
+            </div>
+            <div class="item Rare">
+                <p>Микросхема Rare<br>Улучшает зарядку (+0.01 🪫/s)<br>Стоимость: 50 ⚡</p>
+                <button onclick="buyMicrochip('Rare')">Купить</button>
+            </div>
+            <div class="item SuperRare">
+                <p>Микросхема Super Rare<br>Улучшает зарядку (+0.05 🪫/s)<br>Стоимость: 100 ⚡</p>
+                <button onclick="buyMicrochip('Super Rare')">Купить</button>
+            </div>
+            <div class="item Epic">
+                <p>Микросхема Epic<br>Улучшает зарядку (+0.1 🪫/s)<br>Стоимость: 250 ⚡</p>
+                <button onclick="buyMicrochip('Epic')">Купить</button>
+            </div>
+            <div class="item Mythic">
+                <p>Микросхема Mythic<br>Улучшает зарядку (+0.5 🪫/s)<br>Стоимость: 500 ⚡</p>
+                <button onclick="buyMicrochip('Mythic')">Купить</button>
+            </div>
+            <div class="item Legendary">
+                <p>Микросхема Legendary<br>Улучшает зарядку (+1.0 🪫/s)<br>Стоимость: 1000 ⚡</p>
+                <button onclick="buyMicrochip('Legendary')">Купить</button>
+            </div>
+            <div class="item">
+                <p>Ускоритель<br>Увеличивает скорость зарядки в 2 раза на 1 час<br>Стоимость: 25 ⚡</p>
+                <button onclick="buyItem('booster')">Купить</button>
+            </div>
+            <div class="item">
+                <p>Неоновая обложка<br>Кастомизация фермы<br>Стоимость: 20 ⚡</p>
+                <button onclick="buyItem('cosmetic')">Купить</button>
+            </div>
+        </div>
+        <div id="bonus" class="tab-content">
+            <h2>Запрос бонуса</h2>
+            <div id="bonus-message" style="display: none;"></div>
+            <p>Накопите 🪫 Батарейки, чтобы запросить бонус в виде цифровых токенов (например, SOL).</p>
+            <p>Текущие батарейки: <span id="bonus-batteries">0</span></p>
+            <p>Минимально для бонуса: 1 батарейка</p>
+            <p>Примечание: Взимается комиссия 5%. Бонусы не гарантируются и предоставляются по усмотрению администрации.</p>
+            <button onclick="requestBonus()">Запросить бонус</button>
+        </div>
+        <div id="withdrawal" class="tab-content">
+            <h2>Вывод</h2>
+            <div id="withdrawal-message" style="display: none;"></div>
+            <p>Введите количество 🪫 Батареек для вывода (минимум 5) и адрес кошелька.</p>
+            <p>Вывод возможен один раз в день. Комиссия 5%.</p>
+            <input type="number" id="withdrawal-amount" placeholder="Количество батареек">
+            <input type="text" id="withdrawal-wallet" placeholder="Адрес кошелька">
+            <p>Текущие батарейки: <span id="withdrawal-batteries">0</span></p>
+            <button onclick="requestWithdrawal()">Запросить вывод</button>
+        </div>
+        <div id="referrals" class="tab-content">
+            <h2>Рефералы</h2>
+            <p>Пользователь: <span id="username-display">Гость</span></p>
+            <p>⚡ Молнии: <span id="balance">0</span></p>
+            <p>Рефералы: <span id="referrals-referral-count">0</span></p>
+            <p>Реферальная ссылка: <a id="referral-link" href="https://t.me/YourBot?start=0">https://t.me/YourBot?start=0</a></p>
+            <h3>Ваши рефералы</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Chat ID</th>
+                        <th>Имя пользователя</th>
+                        <th>Баланс (⚡)</th>
+                    </tr>
+                </thead>
+                <tbody id="referrals-list">
+                    <tr><td colspan="3">Нет рефералов</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="agreement" class="tab-content">
+            <h2>Пользовательское соглашение</h2>
+            <ol>
+                <li>Проект использует игровые элементы (Молнии, Батарейки, Микросхемы) только для геймификации.</li>
+                <li>Все действия выполняются в рамках мотивационной системы и не являются финансовыми услугами.</li>
+                <li>Бонусы — это награды за активность, не гарантируются и предоставляются по усмотрению администрации.</li>
+                <li>Проект не является инвестиционной платформой.</li>
+                <li>Криптовалютные бонусы предоставляются в рамках мотивационной программы.</li>
+            </ol>
+        </div>
+        <div id="support" class="tab-content">
+            <h2>Техническая поддержка</h2>
+            <p>Если у вас есть вопросы или проблемы, свяжитесь с нашей службой поддержки через Telegram.</p>
+            <p><a href="https://t.me/vfarm_support_bot" target="_blank">Написать в тех. поддержку</a></p>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+</body>
+</html>
